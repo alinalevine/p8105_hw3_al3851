@@ -49,7 +49,7 @@ locations_df = brfss_df %>%
   distinct(locationdesc, .keep_all = TRUE) %>%
   summarize(n_observations = n())
 
-ggplot(observations_sum_df, aes(x = year, y = n_observations, color = state)) +
+ggplot(locations_df, aes(x = year, y = n_observations, color = state)) +
   geom_line() +
   labs(title = "Locations Per State From 2002-2010 by State",
        x = "Year", 
@@ -60,9 +60,8 @@ ggplot(observations_sum_df, aes(x = year, y = n_observations, color = state)) +
 
 ```
 
-This Spaghetti Plot shows that Florida was an outlier in the number of responses in 2007 and 2010, when there were huge jumps in response number for Florida.
+This Spaghetti Plot shows that Florida was an outlier in the number of locations in 2007 and 2010, when there were huge jumps in the number of locations reporting in Florida.
 
-Make a “spaghetti plot” that shows the number of observations in each state from 2002 to 2010.
 
 #Table
 
@@ -86,16 +85,16 @@ Make a table showing, for the years 2002, 2006, and 2010, the mean and standard 
 ```{r}
 
 brfss_prop_av = brfss_df %>%
-  group_by(year, locationabbr, response) %>%
+  group_by(year, state, response) %>%
   summarize(mean_prop = mean(data_value))
 
-ggplot(brfss_prop_av, aes( x = year, y = mean_prop, color = locationabbr)) +
+ggplot(brfss_prop_av, aes( x = year, y = mean_prop, color = state)) +
   geom_line() +
   facet_grid(~response)
 
 ```
 
-For each year and state, compute the average proportion in each response category (taking the average across locations in a state). Make a five-panel plot that shows, for each response category separately, the distribution of these state-level averages over time.
+
 
 #Problem 2
 
@@ -123,6 +122,21 @@ ggplot(aisle_table, aes(x = aisle, y = n_items)) +
   
 ```
 
+There are `r n_aisles` aisles. 
 
-How many aisles are there, and which aisles are the most items ordered from? QUESTION: Do you mean most distinct items?
+
+```{r}
+
+item_count = instacart_df %>% 
+  filter(aisle %in% c("baking ingredients", "dog food care", "packaged vegetables fruits")) %>%
+  group_by(product_id) %>%
+  mutate(product_count = n()) %>%
+  ungroup() %>%
+  group_by(aisle) %>%
+  filter(product_count == max(product_count)) %>%
+  distinct(product_id, .keep_all = TRUE) %>%
+  select(aisle, product_name, product_count)
+
+```
+
 
