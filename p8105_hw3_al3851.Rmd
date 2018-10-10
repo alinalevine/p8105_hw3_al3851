@@ -9,6 +9,7 @@ output: github_document
 library(p8105.datasets)
 library(tidyverse)
 library(ggplot2)
+library(tidyverse)
 ```
 
 
@@ -18,10 +19,110 @@ library(ggplot2)
 
 brfss_df = brfss_smart2010 %>%
   janitor::clean_names() %>%
-  filter(class == "Health Status") %>%
+  filter(topic == "Overall Health") %>%
   filter(response %in% c("Excellent", "Good", "Poor", "Very good", "Fair")) %>%
-  mutate(response = factor(response, levels = c("Poor", "Fair", "Good", "Very good", "Excellent")))
+  mutate(response = factor(response, levels = c("Poor", "Fair", "Good", "Very good", "Excellent"))) %>%
+  rename("state" = locationabbr)
 
 
 ```
+
+#locations and observations per state
+
+```{r}
+locations_sum_df = brfss_df %>%
+  group_by(state) %>%
+  distinct(locationdesc, keep.all = TRUE) %>%
+  summarize(n_locations = n())
+  
+filter(locations_sum_df, n_locations == 7)
+
+
+```
+CT, MT, NH, NM, OR, TN, and Utah all had responses from 7 locations. 7 locations was the mode of the number of locations per state. 
+
+#Spaghetti Plot
+
+```{r}
+locations_df = brfss_df %>%
+  group_by(state, year) %>%
+  distinct(locationdesc, .keep_all = TRUE) %>%
+  summarize(n_observations = n())
+
+ggplot(observations_sum_df, aes(x = year, y = n_observations, color = state)) +
+  geom_line() +
+  labs(title = "Locations Per State From 2002-2010 by State",
+       x = "Year", 
+       y = "Number of Locations") +
+  scale_color_hue(name = "State")
+  
+
+
+```
+
+This Spaghetti Plot shows that Florida was an outlier in the number of responses in 2007 and 2010, when there were huge jumps in response number for Florida.
+
+Make a “spaghetti plot” that shows the number of observations in each state from 2002 to 2010.
+
+#Table
+
+```{r}
+
+brfss_excellent_tab = brfss_df %>%
+  filter(year %in% c(2002,2006, 2010), state == "NY", response == "Excellent") %>%
+  group_by(year) %>%
+  summarize(mean = mean(data_value), sd = sd(data_value))
+  
+  
+```
+
+The mean proportion of excellent responses decreased from 2002 to 2006, but then it stayed constant. 
+
+
+Make a table showing, for the years 2002, 2006, and 2010, the mean and standard deviation of the proportion of “Excellent” responses across locations in NY State.
+
+
+#Average Proportion
+```{r}
+
+brfss_prop_av = brfss_df %>%
+  group_by(year, locationabbr, response) %>%
+  summarize(mean_prop = mean(data_value))
+
+ggplot(brfss_prop_av, aes( x = year, y = mean_prop, color = locationabbr)) +
+  geom_line() +
+  facet_grid(~response)
+
+```
+
+For each year and state, compute the average proportion in each response category (taking the average across locations in a state). Make a five-panel plot that shows, for each response category separately, the distribution of these state-level averages over time.
+
+#Problem 2
+
+```{r}
+
+instacart_df = instacart
+
+
+```
+
+There are `r nrow(instacart_df)` rows and `r ncol(instacart_df)` columns. Each observation is identified by the columns order_id and product_id, so each observation is a particular order of a particular product. Some key variables give information about when an order was made. For example , there is a variable for the day of the week, the hour of the day, as well as the number of days since the last order, for each product in an order. Aside from information about order timing, there are variables about the product. For example, one variable gives the name of the product and another gives the department of the product. 
+
+```{r}
+
+n_aisles = length(unique(instacart$aisle))
+
+aisle_table = instacart_df %>%
+  group_by(aisle_id) %>%
+  mutate(n_items = n()) %>%
+  distinct(aisle_id, .keep_all = TRUE)
+
+ggplot(aisle_table, aes(x = aisle, y = n_items)) +
+  geom_bar(stat = "identity") +
+  facet_grid(~department)
+  
+```
+
+
+How many aisles are there, and which aisles are the most items ordered from? QUESTION: Do you mean most distinct items?
 
