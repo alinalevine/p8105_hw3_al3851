@@ -10,11 +10,21 @@ library(p8105.datasets)
 library(tidyverse)
 library(ggplot2)
 library(tidyverse)
+library(scales)
+library(ggrepel)
+
+
+knitr::opts_chunk$set(
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%"
+)
+
 ```
 
 
 ##Data Cleaning
-```{r}
+```{r clean_brfss, warning = FALSE, message = FALSE}
 
 
 brfss_df = brfss_smart2010 %>%
@@ -27,9 +37,9 @@ brfss_df = brfss_smart2010 %>%
 
 ```
 
-#locations and observations per state
+#Number Locations/state
 
-```{r}
+```{r locations per state,  warning = FALSE, message = FALSE}
 locations_sum_df = brfss_df %>%
   group_by(state) %>%
   distinct(locationdesc, keep.all = TRUE) %>%
@@ -43,15 +53,15 @@ CT, MT, NH, NM, OR, TN, and Utah all had responses from 7 locations. 7 locations
 
 #Spaghetti Plot
 
-```{r}
+```{r Spaghetti, results = "hide", warning = FALSE, message = FALSE}
 locations_df = brfss_df %>%
   group_by(state, year) %>%
   distinct(locationdesc, .keep_all = TRUE) %>%
-  summarize(n_observations = n())
+  summarize(n_observations = n()) 
 
 ggplot(locations_df, aes(x = year, y = n_observations, color = state)) +
   geom_line() +
-  labs(title = "Locations Per State From 2002-2010 by State",
+  labs(title = "Location Number in 2002-2010 by State",
        x = "Year", 
        y = "Number of Locations") +
   scale_color_hue(name = "State")
@@ -63,9 +73,9 @@ ggplot(locations_df, aes(x = year, y = n_observations, color = state)) +
 This Spaghetti Plot shows that Florida was an outlier in the number of locations in 2007 and 2010, when there were huge jumps in the number of locations reporting in Florida.
 
 
-#Table
+#Excellent  Table
 
-```{r}
+```{r Excellent Table,  warning = FALSE, message = FALSE}
 
 brfss_excellent_tab = brfss_df %>%
   filter(year %in% c(2002,2006, 2010), state == "NY", response == "Excellent") %>%
@@ -82,15 +92,20 @@ Make a table showing, for the years 2002, 2006, and 2010, the mean and standard 
 
 
 #Average Proportion
-```{r}
+```{r average proportion, results = "hide", warning = FALSE, message = FALSE}
 
 brfss_prop_av = brfss_df %>%
   group_by(year, state, response) %>%
-  summarize(mean_prop = mean(data_value))
+  summarize(mean_prop = mean(data_value, na.rm = TRUE))
 
 ggplot(brfss_prop_av, aes( x = year, y = mean_prop, color = state)) +
   geom_line() +
-  facet_grid(~response)
+  facet_grid(~response) +
+  scale_color_discrete(guide = FALSE) +
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 4)) +
+  theme(panel.margin = unit(1, "cm")) 
+
+
 
 ```
 
@@ -98,16 +113,18 @@ ggplot(brfss_prop_av, aes( x = year, y = mean_prop, color = state)) +
 
 #Problem 2
 
-```{r}
+```{r instacart, results = "hide", warning = FALSE, message = FALSE}
 
 instacart_df = instacart
-
 
 ```
 
 There are `r nrow(instacart_df)` rows and `r ncol(instacart_df)` columns. Each observation is identified by the columns order_id and product_id, so each observation is a particular order of a particular product. Some key variables give information about when an order was made. For example , there is a variable for the day of the week, the hour of the day, as well as the number of days since the last order, for each product in an order. Aside from information about order timing, there are variables about the product. For example, one variable gives the name of the product and another gives the department of the product. 
 
-```{r}
+#Popular Aisle
+
+```{r popular items, results = "hide", warning = FALSE, message = FALSE}
+
 
 n_aisles = length(unique(instacart$aisle))
 
@@ -123,14 +140,15 @@ aisle_table_top = aisle_table %>%
 ggplot(aisle_table, aes(x = reorder(aisle,n_items), y = n_items, color = department)) +
   geom_point(stat = "identity") + 
   geom_text_repel(data = rbind(head(aisle_table_top,10), tail(aisle_table_top, 10)), aes(x = aisle, y = n_items, label = aisle)) +
-  theme(legend.position="bottom")
+  theme(legend.position = "bottom")
 
 ```
 
-There are `r n_aisles` aisles. 
+There are `r n_aisles` aisles. I labeled the most popular and least popular aisles, since too many labels would make the plot impossible to read.  
+ 
+#Popular Items
 
-
-```{r}
+```{r item_count results = "hide", warning = FALSE, message = FALSE}
 
 item_count = instacart_df %>% 
   filter(aisle %in% c("baking ingredients", "dog food care", "packaged vegetables fruits")) %>%
@@ -175,15 +193,15 @@ ny_noaa_df = ny_noaa %>%
   mutate(year = lubridate::year(date),
          month = lubridate::month(date),
          day = lubridate::day(date)) %>%
-  mutate(tmin = as.numeric(tmin)/10, tmax = as.numeric(tmax)/10) %>%
-  mutate(snwd = (as.numeric(snwd)/10)/2.54, snow = (as.numeric(snow)/10)/2.54) %>%
-  mutate(prcp = (as.numeric(prcp)/100)/2.54)
+  mutate(tmin = as.numeric(tmin) / 10 * (9/5) + 32, tmax = as.numeric(tmax) / 10 * (9/5) + 32) %>%
+  mutate(snwd = (as.numeric(snwd) / 10) / 2.54, snow = (as.numeric(snow) / 10) / 2.54) %>%
+  mutate(prcp = (as.numeric(prcp) / 100) / 2.54)
 
   
 
 
 ```
-The ny_noaa dataframe is `r nrow(ny_noaa_df)' rows by 'r ncol(ny_noaa_df)`. The key variables are the station identification number, the date the weather was recorded, the precipitation (inches) recorded, snow depth (inches) recorded, snowfall recorded (inches), minimum temperature(degrees celsius) and maximum temperature (degrees celsisus). The fact that there is so much missing data may negatively affect any analysis, since so many stations will be unrepresented in plots and calculations for estimates. For example, if data is missing from stations that get very hot, estimates for mean maximum temperature will be too low. 
+The ny_noaa dataframe is `r nrow(ny_noaa_df)` rows by `r ncol(ny_noaa_df)`. After converting units, the key variables are the station identification number, the date the weather was recorded, the precipitation (inches) recorded, snow depth (inches) recorded, snowfall recorded (inches), minimum temperature(degrees farenheit) and maximum temperature (degrees farenheit). The fact that there is so much missing data may negatively affect any analysis, since so many stations will be unrepresented in plots and calculations for estimates. For example, if data is missing from stations that get very hot, estimates for mean maximum temperature will be too low. 
 
 
 #Average Maximum Temperatures Per Station
@@ -199,14 +217,47 @@ average_max_df = ny_noaa_df %>%
   mutate(month = as.character(month)) %>%
   mutate(month = recode(month, "1" = "January", "7" = "July"))
 
-  ggplot(average_max_df, aes(x = year, y = average_max, fill = id)) +
+  ggplot(average_max_df, aes(x = year, y = average_max, color = month)) +
     geom_point() +
-    facet_grid(~month)
+    scale_y_continuous(breaks = scales::pretty_breaks(n = 10)) +
+    facet_grid(~month) + 
+    labs(title = "Average Max Temperature by Station from 1980-2010",
+         y = "Average Max Temp (Degrees F)")
     
 
 ```
 
 
+It appears as though average maximum temperatures in January tend to have a larger range each year than average maximum temperatures in July. There is more variability in the average maximum temperatures. It looks like there are chuncks of time where changes in average monthly temperature follow the same pattern in July in August, but there are other chuncks where this is not the case (i.e some years values go up and down together but other times they don't ),so it is unclear whether average max temperature in July and June go hand in hand. There are several outliers over the years. In 1982 there was a station about 7 degrees colder than the next lowest station. In 1888 the average max temperature in July was 7 degrees colder than the next highest. It's important to note that there are 5970 observations that are missing. 
+
+```{r}
+library(viridis)
+
+ggplot(ny_noaa_df, aes(x = tmin, y = tmax)) +
+  geom_hex() +
+  labs(title = "Minimum vs. Maximum Temp from 1980 to  2010",
+       x = "tmin (Celsius)",
+       y = "tmax (Celsius)") + 
+  scale_fill_viridis()
 
 
+```
 
+
+As expected, t_max is positively associated with t_min. The relationship between t_max and t_min looks approximately linear. The most densly distributed minimum temperatures occur between about 10 and 60 degrees Farenheit and the most densly distributed maximum temperatures occur between 25 and 80 degrees Farenheit. Some areas of density do not make sense. For example, there is one hexagon where minimum temperature is around -10 degrees Farenheit and the maximum temperature is about 135 degrees Farenheit. I searched for this observation or observations in the dataframe, and a situation like this was recorded on January 28, 2005. How is it possible that a station became so hot and so cold on this day in January? Was there a fire at some point in the day in this station? 
+
+```{r}
+ny_noaa_df %>%
+  filter(!is.na(snow)) %>%
+  filter(snow > 0 & snow < 100) %>%
+  ggplot(aes(x = year, y = snow)) +
+  geom_hex(bins = 80) +
+  labs(title = "Snowfall between 1981 and 2010",
+       x = "year",
+       y = "snowfall (inches)")
+
+  
+```
+
+
+I chose to use geom_hex for this plot as well because it shows the large concentration of very small snowfalls. With geom_point snowfalls around 10 inches looked just as common as snowfalls very close to zero inches. In this plot I made the bins a smaller size, so that years would be separted. This plot shows that snowfall above 35 inches was rare. 
