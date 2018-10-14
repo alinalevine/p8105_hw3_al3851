@@ -25,7 +25,7 @@ knitr::opts_chunk$set(
 
 ##Data Cleaning
 
-I am filtering to get just overall health questions and am ordering factor levels for the responses. The I am renaimgin locationabbr "state".
+I am filtering to get just overall health questions and am ordering factor levels for the responses. Then I am renaimgin locationabbr "state".
 ```{r clean_brfss, results = "hide", warning = FALSE, message = FALSE}
 
 
@@ -107,6 +107,9 @@ brfss_prop_av = brfss_df %>%
 ggplot(brfss_prop_av, aes( x = year, y = mean_prop, color = state)) +
   geom_line() +
   facet_grid(~response) +
+  labs(title = "Mean Proportions by Category",
+       x = "year",
+       y = "mean proportion") +
   scale_color_discrete(guide = FALSE) +
   scale_x_continuous(breaks = scales::pretty_breaks(n = 4)) +
   theme(panel.margin = unit(1, "cm")) +
@@ -159,7 +162,7 @@ There are `r n_aisles` aisles. I labeled the most popular items, since too many 
 
 #Popular Items
 
-
+I am just including baking ingredient, dog food care, and packaged vegetables fruits aisles. The I am getting the product count for each product in each aisle and am only including the items that are the most popular in their respective aisle.
 
 ```{r item_count, warning = FALSE, message = FALSE}
 
@@ -174,27 +177,27 @@ item_count = instacart_df %>%
   select(aisle, product_name, product_count)
 
 ```
-Organic baby spinach is the most popular item of these most popular items in these three isles. 
+Organic baby spinach is the most popular item of these most popular items in these three isles with 9784 orders.
 
 #Mean Hour of Orders
+
+I am getting the mean hour of orders for both Pink Lady Apples and Coffee Ice Cream for each day of the week and then will compare them. 
 ```{r mean hour, results = "hide", warning = FALSE, message = FALSE}
 
 mean_hour_df = instacart_df %>%
   filter(product_name %in% c("Pink Lady Apples", "Coffee Ice Cream")) %>%
-  group_by(order_dow) %>%
+  group_by(order_dow, product_name) %>%
   summarize(mean_hour = mean(order_hour_of_day)) %>%
+  ungroup() %>%
   mutate(order_dow = as.character(order_dow)) %>%
   mutate(order_dow = recode(order_dow, "0" = "Sunday", "1" = "Monday", "2" = "Tuesday", "3" = "Wednesday", "4" = "Thursday", "5" = "Friday", "6" = "Saturday")) %>%
-  spread(key = order_dow, value = mean_hour)
+  spread(key = order_dow, value = mean_hour) %>%
+  select(product_name, "Sunday", "Monday", "Tuesday","Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
 
-rbind(mean_hour_df$order_dow, mean_hour_df$mean_hour)
-
-mean_hour_switch_df = as.tibble(mean_hour_df$mean_hour)
-colnames(mean_hour_switch_df) = mean_hour_df$order_dow
 
 ```
 
-The mean hour for every day of the week is in the early afternoon.
+The mean hour for every day of the week late morning - early afternoon. The mean hours are similar over the weekend for the two products but they differ by at least three hours on Monday, Tuesday, and Thursday. Coffee ice cream is ordered much later than Pink Lady Apple on those days.
 
 
 
@@ -202,6 +205,8 @@ The mean hour for every day of the week is in the early afternoon.
 
 
 #ny_noaa Cleaning
+
+I am converting tmin and tmax to Farenheit and am converting precipitation and snow to inches. I an also extracting the year and the month from the date.
 ```{r ny_noaa cleaning, results = "hide", warning = FALSE, message = FALSE}
 ny_noaa_df = ny_noaa %>%
   mutate(year = lubridate::year(date),
@@ -215,12 +220,12 @@ ny_noaa_df = ny_noaa %>%
 
 
 ```
-The ny_noaa dataframe is `r nrow(ny_noaa_df)` rows by `r ncol(ny_noaa_df)`. After converting units, the key variables are the station identification number, the date the weather was recorded, the precipitation (inches) recorded, snow depth (inches) recorded, snowfall recorded (inches), minimum temperature(degrees farenheit) and maximum temperature (degrees farenheit). The fact that there is so much missing data may negatively affect any analysis, since so many stations will be unrepresented in plots and calculations for estimates. For example, if data is missing from stations that get very hot, estimates for mean maximum temperature will be too low. 
+The ny_noaa dataframe is `r nrow(ny_noaa_df)` rows by `r ncol(ny_noaa_df)`. After converting units, the key variables are the station identification number, the date the weather was recorded, the precipitation (inches) recorded, snow depth (inches) recorded, snowfall recorded (inches), minimum temperature(degrees farenheit) and maximum temperature (degrees farenheit). The fact that there is so much missing data may negatively affect any analysis, since so many stations will be unrepresented in plots and calculations for estimates. For example, if these stations that do not report have certain commonalities, data could be misleading. What if stations that do not report tend to have worse conditions and get much hotter than other stations?
 
 
 #Average Maximum Temperatures Per Station
 
-I am grouping by station id, year, and month to get the average maximum temperature for each station in each year in both the months july and january
+I am grouping by station id, year, and month to get the average maximum temperature for each station in each year in both the months July and January
 ```{r temp by station, results = "hide", warning = FALSE, message = FALSE}
 
 average_max_df = ny_noaa_df %>%
@@ -258,7 +263,7 @@ ggplot(ny_noaa_df, aes(x = tmin, y = tmax)) +
 ```
 
 
-As expected, t_max is positively associated with t_min. The relationship between t_max and t_min looks approximately linear. The most densly distributed minimum temperatures occur between about 10 and 60 degrees Farenheit and the most densly distributed maximum temperatures occur between 25 and 80 degrees Farenheit. Some areas of density do not make sense. For example, there is one hexagon where minimum temperature is around -10 degrees Farenheit and the maximum temperature is about 135 degrees Farenheit. I searched for this observation or observations in the dataframe, and a situation like this was recorded on January 28, 2005. How is it possible that a station became so hot and so cold on this day in January? Was there a fire at some point in the day in this station? 
+As expected, t_max is positively associated with t_min. The relationship between t_max and t_min looks approximately linear. The most densly distributed minimum temperatures occur between about 10 and 60 degrees Farenheit and the most densly distributed maximum temperatures occur between 25 and 80 degrees Farenheit. Some areas of density do not make sense. For example, there is one hexagon where minimum temperature is around -10 degrees Farenheit and the maximum temperature is about 135 degrees Farenheit. I searched for this observation or observations in the dataframe, and a situation like this was recorded on January 28, 2005. How is it possible that a station became so hot and so cold on this day in January?
 
 #snowfall
 ```{r snowfall, results = "hide", warning = FALSE, message = FALSE}
@@ -266,7 +271,7 @@ ny_noaa_df %>%
   filter(!is.na(snow)) %>%
   filter(snow > 0 & snow < 100) %>%
   ggplot(aes(x = year, y = snow)) +
-  geom_hex(bins = 80) +
+  geom_point() +
   labs(title = "Snowfall between 1981 and 2010",
        x = "year",
        y = "snowfall (inches)")
@@ -275,4 +280,4 @@ ny_noaa_df %>%
 ```
 
 
-I chose to use geom_hex for this plot as well because it shows the large concentration of very small snowfalls. With geom_point snowfalls around 10 inches looked just as common as snowfalls very close to zero inches. In this plot I made the bins a smaller size, so that years would be separted. This plot shows that snowfall above 35 inches was rare. 
+I chose to use geom_hex for this plot as well because it shows the large concentration of very small snowfalls. With geom_point, snowfalls of 10 inches looked just as common as snowfalls very close to zero inches. In this plot I made the bins a smaller size, so that years would be separted. This plot shows that snowfall above 35 inches was rare. 
