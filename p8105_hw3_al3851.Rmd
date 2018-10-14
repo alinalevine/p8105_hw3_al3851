@@ -5,7 +5,7 @@ output: github_document
 
 #Problem 1
 
-```{r}
+```{r results = "hide", message = FALSE, warning = FALSE}
 library(p8105.datasets)
 library(tidyverse)
 library(ggplot2)
@@ -24,14 +24,16 @@ knitr::opts_chunk$set(
 
 
 ##Data Cleaning
-```{r clean_brfss, warning = FALSE, message = FALSE}
+
+I am filtering to get just overall health questions and am ordering factor levels for the responses. The I am renaimgin locationabbr "state".
+```{r clean_brfss, results = "hide", warning = FALSE, message = FALSE}
 
 
 brfss_df = brfss_smart2010 %>%
   janitor::clean_names() %>%
   filter(topic == "Overall Health") %>%
   filter(response %in% c("Excellent", "Good", "Poor", "Very good", "Fair")) %>%
-  mutate(response = factor(response, levels = c("Poor", "Fair", "Good", "Very good", "Excellent"))) %>%
+  mutate(response = factor(response, levels = c("Excellent", "Good", "Poor", "Very good", "Fair"))) %>%
   rename("state" = locationabbr)
 
 
@@ -39,7 +41,8 @@ brfss_df = brfss_smart2010 %>%
 
 #Number Locations/state
 
-```{r locations per state,  warning = FALSE, message = FALSE}
+I am grouping by state to get the number of location per state
+```{r locations per state, warning = FALSE, message = FALSE}
 locations_sum_df = brfss_df %>%
   group_by(state) %>%
   distinct(locationdesc, keep.all = TRUE) %>%
@@ -53,6 +56,7 @@ CT, MT, NH, NM, OR, TN, and Utah all had responses from 7 locations. 7 locations
 
 #Spaghetti Plot
 
+After I group by state and year, I am just keeping 1 locationdesc from each group so I can get the number of locationdesc per year per state.
 ```{r Spaghetti, results = "hide", warning = FALSE, message = FALSE}
 locations_df = brfss_df %>%
   group_by(state, year) %>%
@@ -75,6 +79,7 @@ This Spaghetti Plot shows that Florida was an outlier in the number of locations
 
 #Excellent  Table
 
+I am getting the mean proportion of excellent responses in 2002, 2006, and 2010
 ```{r Excellent Table,  warning = FALSE, message = FALSE}
 
 brfss_excellent_tab = brfss_df %>%
@@ -88,10 +93,11 @@ brfss_excellent_tab = brfss_df %>%
 The mean proportion of excellent responses decreased from 2002 to 2006, but then it stayed constant. 
 
 
-Make a table showing, for the years 2002, 2006, and 2010, the mean and standard deviation of the proportion of “Excellent” responses across locations in NY State.
 
 
 #Average Proportion
+
+I am rotating the axis labels, so the years do not intersect
 ```{r average proportion, results = "hide", warning = FALSE, message = FALSE}
 
 brfss_prop_av = brfss_df %>%
@@ -103,12 +109,13 @@ ggplot(brfss_prop_av, aes( x = year, y = mean_prop, color = state)) +
   facet_grid(~response) +
   scale_color_discrete(guide = FALSE) +
   scale_x_continuous(breaks = scales::pretty_breaks(n = 4)) +
-  theme(panel.margin = unit(1, "cm")) 
+  theme(panel.margin = unit(1, "cm")) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
 
 
 
 ```
-
+ Scores at least as high as good were more common than fair and poor scores. Very good tended to be the most popular. Excellent and very good scores also had the most variability.
 
 
 #Problem 2
@@ -119,9 +126,11 @@ instacart_df = instacart
 
 ```
 
-There are `r nrow(instacart_df)` rows and `r ncol(instacart_df)` columns. Each observation is identified by the columns order_id and product_id, so each observation is a particular order of a particular product. Some key variables give information about when an order was made. For example , there is a variable for the day of the week, the hour of the day, as well as the number of days since the last order, for each product in an order. Aside from information about order timing, there are variables about the product. For example, one variable gives the name of the product and another gives the department of the product. 
+There are `r nrow(instacart_df)` rows and `r ncol(instacart_df)` columns. Each observation is identified by the columns order_id and product_id, so each observation is a particular order of a particular product. Some key variables give information about when an order was made. For example , there is a variable for the day of the week which has values 0-6 (sunday-saturday), the hour of the day, as well as the number of days since the last order, for each product in an order. Aside from information about order timing, there are variables about the product. For example, one variable gives the name of the product and another gives the department of the product. 
 
 #Popular Aisle
+
+I am filtering by aisle_id to get the number of items orderd in each aisle
 
 ```{r popular items, results = "hide", warning = FALSE, message = FALSE}
 
@@ -133,22 +142,26 @@ aisle_table = instacart_df %>%
   mutate(n_items = n()) %>%
   distinct(aisle_id, .keep_all = TRUE)
 
-aisle_table_top = aisle_table %>%
+aisle_table_order = aisle_table %>%
   arrange(desc(n_items))
   
 
-ggplot(aisle_table, aes(x = reorder(aisle,n_items), y = n_items, color = department)) +
+ggplot(aisle_table, aes(x = aisle_id, y = n_items, color = department)) +
   geom_point(stat = "identity") + 
-  geom_text_repel(data = rbind(head(aisle_table_top,10), tail(aisle_table_top, 10)), aes(x = aisle, y = n_items, label = aisle)) +
+  geom_text_repel(data = head(aisle_table_order,10), aes(x = aisle_id, y = n_items, label = aisle)) +
   theme(legend.position = "bottom")
+  
 
 ```
 
-There are `r n_aisles` aisles. I labeled the most popular and least popular aisles, since too many labels would make the plot impossible to read.  
- 
+There are `r n_aisles` aisles. I labeled the most popular items, since too many labels would make the plot impossible to read. I also ordered by aisle number because there was no way to put aisle name on the axis. I colored by department. Popular aisles were fresh fruits and fresh vegetables and packaged vegetables and fruits. 
+
+
 #Popular Items
 
-```{r item_count results = "hide", warning = FALSE, message = FALSE}
+
+
+```{r item_count, warning = FALSE, message = FALSE}
 
 item_count = instacart_df %>% 
   filter(aisle %in% c("baking ingredients", "dog food care", "packaged vegetables fruits")) %>%
@@ -163,7 +176,8 @@ item_count = instacart_df %>%
 ```
 Organic baby spinach is the most popular item of these most popular items in these three isles. 
 
-```{r}
+#Mean Hour of Orders
+```{r mean hour, results = "hide", warning = FALSE, message = FALSE}
 
 mean_hour_df = instacart_df %>%
   filter(product_name %in% c("Pink Lady Apples", "Coffee Ice Cream")) %>%
@@ -187,8 +201,8 @@ The mean hour for every day of the week is in the early afternoon.
 #Problem 3
 
 
-#Data Cleaning
-```{r}
+#ny_noaa Cleaning
+```{r ny_noaa cleaning, results = "hide", warning = FALSE, message = FALSE}
 ny_noaa_df = ny_noaa %>%
   mutate(year = lubridate::year(date),
          month = lubridate::month(date),
@@ -207,7 +221,7 @@ The ny_noaa dataframe is `r nrow(ny_noaa_df)` rows by `r ncol(ny_noaa_df)`. Afte
 #Average Maximum Temperatures Per Station
 
 I am grouping by station id, year, and month to get the average maximum temperature for each station in each year in both the months july and january
-```{r}
+```{r temp by station, results = "hide", warning = FALSE, message = FALSE}
 
 average_max_df = ny_noaa_df %>%
   filter(month %in% c(1,7)) %>%
@@ -230,7 +244,7 @@ average_max_df = ny_noaa_df %>%
 
 It appears as though average maximum temperatures in January tend to have a larger range each year than average maximum temperatures in July. There is more variability in the average maximum temperatures. It looks like there are chuncks of time where changes in average monthly temperature follow the same pattern in July in August, but there are other chuncks where this is not the case (i.e some years values go up and down together but other times they don't ),so it is unclear whether average max temperature in July and June go hand in hand. There are several outliers over the years. In 1982 there was a station about 7 degrees colder than the next lowest station. In 1888 the average max temperature in July was 7 degrees colder than the next highest. It's important to note that there are 5970 observations that are missing. 
 
-```{r}
+```{r t max min, results = "hide", warning = FALSE, message = FALSE}
 library(viridis)
 
 ggplot(ny_noaa_df, aes(x = tmin, y = tmax)) +
@@ -246,7 +260,8 @@ ggplot(ny_noaa_df, aes(x = tmin, y = tmax)) +
 
 As expected, t_max is positively associated with t_min. The relationship between t_max and t_min looks approximately linear. The most densly distributed minimum temperatures occur between about 10 and 60 degrees Farenheit and the most densly distributed maximum temperatures occur between 25 and 80 degrees Farenheit. Some areas of density do not make sense. For example, there is one hexagon where minimum temperature is around -10 degrees Farenheit and the maximum temperature is about 135 degrees Farenheit. I searched for this observation or observations in the dataframe, and a situation like this was recorded on January 28, 2005. How is it possible that a station became so hot and so cold on this day in January? Was there a fire at some point in the day in this station? 
 
-```{r}
+#snowfall
+```{r snowfall, results = "hide", warning = FALSE, message = FALSE}
 ny_noaa_df %>%
   filter(!is.na(snow)) %>%
   filter(snow > 0 & snow < 100) %>%
